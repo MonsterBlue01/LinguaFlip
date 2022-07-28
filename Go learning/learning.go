@@ -208,15 +208,101 @@ func main() {
     var al float32
     var am *int
 
-    /* 运算符实例 */
-    fmt.Printf("第 1 行 - aj 变量类型为 = %T\n", aj );
-    fmt.Printf("第 2 行 - ak 变量类型为 = %T\n", ak );
-    fmt.Printf("第 3 行 - al 变量类型为 = %T\n", al );
+    /* operator instance */
+    fmt.Printf("Line 1 - aj variable type = %T\n", aj );
+    fmt.Printf("Line 2 - ak variable type = %T\n", ak );
+    fmt.Printf("Line 3 - al variable type is = %T\n", al );
 
-    /*  & 和 * 运算符实例 */
-    am = &aj     /* 'am' 包含了 'aj' 变量的地址 */
-    fmt.Printf("aj 的值为  %d\n", aj);
-    fmt.Printf("*am 为 %d\n", *am);
+    /*  & and * operator examples */
+    am = &aj     /* 'am' contains the address of the 'aj' variable */
+    fmt.Printf("The value of aj is %d\n", aj);
+    fmt.Printf("*am is %d\n", *am);
+
+    var an int = 100;
+
+    /* Evaluate Boolean Expressions */
+    if an < 20 {
+        /* If the condition is true then execute the following statement */
+        fmt.Printf("an is less than 20\n" );
+    } else {
+        /* If the condition is false then execute the following statement */
+        fmt.Printf("an is not less than 20\n" );
+    }
+    fmt.Printf("The value of an is: %d\n", an);
+
+    var grade string = "B"
+    var marks int = 90
+
+    switch marks {
+        case 90: grade = "A"
+        case 80: grade = "B"
+        case 50,60,70 : grade = "C"
+        default: grade = "D"  
+    }
+
+    switch {
+        case grade == "A" :
+            fmt.Printf("excellent!\n" )     
+        case grade == "B", grade == "C" :
+            fmt.Printf("good\n" )      
+        case grade == "D" :
+            fmt.Printf("pass\n" )      
+        case grade == "F":
+            fmt.Printf("failed\n" )
+        default:
+            fmt.Printf("poor\n" );
+    }
+    fmt.Printf("Your level is %s\n", grade );
+
+    var ao interface{}
+        
+    switch ap := ao.(type) {
+        case nil:   
+            fmt.Printf("type of ao: %T", ap)                
+        case int:   
+            fmt.Printf("ao is of type int")                       
+        case float64:
+            fmt.Printf("ao is of type float64")           
+        case func(int) float64:
+            fmt.Printf("ao is of type func(int)")                      
+        case bool, string:
+            fmt.Printf("ao is bool or string" )       
+        default:
+            fmt.Printf("unknown") 
+    }
+    switch {
+    case false:
+            fmt.Println("1. The case conditional statement is false")
+            fallthrough
+    case true:
+            fmt.Println("2. The case conditional statement is true")
+            fallthrough
+    case false:
+            fmt.Println("3. The case conditional statement is false")
+            fallthrough
+    case true:
+            fmt.Println("4. The case conditional statement is true")
+    case false:
+            fmt.Println("5. The case conditional statement is false")
+            fallthrough
+    default:
+            fmt.Println("6. Default case")
+    }
+
+    select {
+    case i1 = <-c1:
+        fmt.Printf("received ", i1, " from c1\n")
+        case c2 <- i2:
+        fmt.Printf("sent ", i2, " to c2\n")
+        case i3, ok := (<-c3):                                      // same as: i3, ok := <-c3
+        if ok {
+            fmt.Printf("received ", i3, " from c3\n")
+        } else {
+            fmt.Printf("c3 is closed\n")
+        }
+        default:
+        fmt.Printf("no communication\n")
+    } 
 }
 
 // single line comment
