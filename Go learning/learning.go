@@ -302,7 +302,59 @@ func main() {
         }
         default:
         fmt.Printf("no communication\n")
-    } 
+    }
+
+    ap := 0
+    for i := 0; i <= 10; i++ {
+        ap += i                                                     // Simplest for loop example
+    }
+    fmt.Println(ap)
+
+    aq := 1
+    for ; aq <= 10; {
+        aq += aq                                                    // A not-so-typical for loop
+    }
+    fmt.Println(aq)
+
+    for aq <= 10{
+        aq += aq                                                    // You can also write it like this, more like a While statement
+    }
+    fmt.Println(aq)
+
+    ar := 0
+    for {
+        ar++                                                        // If there is no break, the loop will go on indefinitely
+        break;
+    }
+    fmt.Println(ar)
+
+    as := []string{"google", "runoob"}
+    for i, s := range as {
+        fmt.Println(i, s)
+    }
+                                                                    // These two are more typical for each types
+    at := [6]int{1, 2, 3, 5} 
+    for i, x:= range at {
+        fmt.Printf("Value of x at position %d = %d\n", i, x)
+    }
+
+    au := make(map[int]float32)
+    au[1] = 1.0
+    au[2] = 2.0
+    au[3] = 3.0
+    au[4] = 4.0
+    
+    for key, value := range au {
+        fmt.Printf("key is: %d - value is: %f\n", key, value)       // read key and value
+    }
+
+    for key := range au {
+        fmt.Printf("key is: %d\n", key)                             // read key
+    }
+
+    for _, value := range au {
+        fmt.Printf("value is: %f\n", value)                         // read value (Note the underscore)
+    }
 }
 
 // single line comment
