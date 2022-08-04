@@ -289,16 +289,19 @@ func main() {
             fmt.Println("6. Default case")
     }
 
+    var aw, ax, ay chan int
+    var az, ba int
+
     select {
-    case i1 = <-c1:
-        fmt.Printf("received ", i1, " from c1\n")
-        case c2 <- i2:
-        fmt.Printf("sent ", i2, " to c2\n")
-        case i3, ok := (<-c3):                                      // same as: i3, ok := <-c3
-        if ok {
-            fmt.Printf("received ", i3, " from c3\n")
+    case az = <-aw:
+        fmt.Printf("received ", az, " from aw\n")
+        case ax <- ba:
+        fmt.Printf("sent ", ba, " to ax\n")
+        case bb, bc := (<-ay):                                      // same as: bb, bc := <-ay
+        if bc {
+            fmt.Printf("received ", bb, " from ay\n")
         } else {
-            fmt.Printf("c3 is closed\n")
+            fmt.Printf("ay is closed\n")
         }
         default:
         fmt.Printf("no communication\n")
@@ -355,6 +358,66 @@ func main() {
     for _, value := range au {
         fmt.Printf("value is: %f\n", value)                         // read value (Note the underscore)
     }
+
+    fmt.Println("---- break ----")
+    for i := 1; i <= 3; i++ {
+        fmt.Printf("i: %d\n", i)
+        for i2 := 11; i2 <= 13; i2++ {
+            fmt.Printf("i2: %d\n", i2)
+            break
+        }
+    }
+
+    fmt.Println("---- break label ----")
+    re0:
+        for i := 1; i <= 3; i++ {
+            fmt.Printf("i: %d\n", i)
+            for i2 := 11; i2 <= 13; i2++ {
+            fmt.Printf("i2: %d\n", i2)
+            break re0
+        }
+    }
+
+    var bd int = 10
+
+    for bd < 20 {
+        if bd == 15 {
+            bd = bd + 1;
+            continue;
+        }
+        fmt.Printf("The value of bd is: %d\n", bd);
+        bd++;     
+    }
+
+    fmt.Println("---- continue ---- ")
+    for i := 1; i <= 3; i++ {
+        fmt.Printf("i: %d\n", i)
+        for i2 := 11; i2 <= 13; i2++ {
+            fmt.Printf("i2: %d\n", i2)
+            continue
+        }
+    }
+
+    fmt.Println("---- continue label ----")
+    re:
+    for i := 1; i <= 3; i++ {
+        fmt.Printf("i: %d\n", i)
+        for i2 := 11; i2 <= 13; i2++ {
+            fmt.Printf("i2: %d\n", i2)
+            continue re
+        }
+    }
+
+    var a int = 10
+
+    LOOP: for a < 20 {
+        if a == 15 {
+            a = a + 1
+            goto LOOP
+        }
+        fmt.Printf("The value of a is : %d\n", a)
+        a++     
+    } 
 }
 
 // single line comment
