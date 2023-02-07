@@ -1,8 +1,11 @@
 Project Title: Image Classification using Convolutional Neural Networks
+==================================================
 Project Overview:
+==================================================
 The goal of this project is to build a Python application that can perform image classification using Convolutional Neural Networks (CNNs). The application should be able to train a CNN on a dataset of images, and then use the trained model to classify new images into one of several predefined categories.
+==================================================
 Key Components:
-
+==================================================
 Data Preprocessing: The first step is to preprocess the data by loading the image dataset, converting the images to arrays of numerical values, and splitting the data into training, validation, and testing sets. You can use the NumPy and OpenCV libraries for this purpose.
 
 Neural Network Design: The next step is to design the CNN architecture, which will include multiple convolutional layers, pooling layers, and fully connected layers. You can use existing architectures, such as LeNet or VGGNet, or design your own. You can use the Keras or PyTorch libraries for this purpose.
@@ -15,3 +18,10 @@ Image Classification: Finally, the application should be able to take a new imag
 
 Libraries and Tools:
 For this project, you will need the NumPy, OpenCV, Keras, TensorFlow, or PyTorch libraries for numerical computation, deep learning, and image processing, as well as the NumPy, SciPy, OpenCV, or Pillow libraries for data analysis, optimization, and image display, respectively.
+==================================================
+Files:
+==================================================
+- data_preprocessing.py: Loaded the binary data files and concatenated the training data from multiple files
+Shaped the loaded data into the correct format for image data (32x32x3 for color images)
+Shuffled the training data and split it into training and validation sets
+Resized the images to (224,224) which is a common size for input to pre-trained models.
