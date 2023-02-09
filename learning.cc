@@ -1,5 +1,3 @@
-// Convolutional Neural Network (CNN): The model defined in the code is a type of deep learning neural network specifically designed for image classification tasks.
-
 // Layers: In this code, the model is constructed using several types of layers, including Conv2D, MaxPooling2D, Flatten, and Dense. Each layer serves a specific purpose in the network and helps extract meaningful features from the input image.
 
 // Activation Functions: Each layer in the network is associated with an activation function, which is used to introduce non-linearity into the network. In this code, the ReLU activation function is used.
