@@ -10,3 +10,10 @@
 
 * Added `model.py`
     * For novices LeNet seems simpler than VGGNet. Since I am new to machine learning, to keep the project within control, I chose to use LeNet.
+
+## 1.0.1
+
+* Added `train.py`
+    * Create model
+    * Train model
+    * Save model
