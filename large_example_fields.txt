@@ -1,0 +1,13 @@
+Salutation
+First Name
+Last Name
+Title
+Account Name
+Mailing Street
+Mailing City
+Mailing State/Province (text only)
+Mailing Zip/Postal Code
+Mailing Country (text only)
+Phone
+Mobile
+Email

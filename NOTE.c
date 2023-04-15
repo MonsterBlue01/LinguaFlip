@@ -1,0 +1,1 @@
+Parece estar cerca de la puerta. ¿Qué salió mal? ¿Necesito pensar detenidamente cómo eliminar una columna específica en CSV paso a paso?
