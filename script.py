@@ -18,33 +18,39 @@ def read_csv_file(filename):
 
 # A function that takes csv list and txt list. And do the most important task
 def compare_lists(csv_list, txt_list):
-    new_list = [x for x in csv_list if x not in txt_list]
-    return new_list
+    # Compare the lists and create a new list with indices of elements not in the txt_list
+    result_list = [i for i, element in enumerate(csv_list) if element not in txt_list]
+
+    return result_list
 
 # Delete corresponding columns
-def delete_columns(column_names, input_file):
-    with open(input_file, 'r+', newline='') as csv_file:
-        reader = csv.reader(csv_file)
-        writer = csv.writer(csv_file)
+def remove_columns(input_file, output_file, columns_to_remove):
+    with open(input_file, 'r', newline='', encoding='iso-8859-1') as infile, open(output_file, 'w', newline='') as outfile:
+        # Read the input file as plain text
+        lines = infile.readlines()
 
-        # Modify the header row to remove the specified columns
-        header = next(reader)
-        columns_to_delete = [header.index(col_name) for col_name in column_names]
-        filtered_header = [header[i] for i in range(len(header)) if i not in columns_to_delete]
-        csv_file.seek(0)
-        writer.writerow(filtered_header)
+        # Process the header row
+        header = lines[0].strip().split(',')
+        new_header = [header[i] for i in range(len(header)) if i not in columns_to_remove]
+        outfile.write(','.join(new_header) + '\n')
 
-        # Modify the remaining rows to remove the specified columns
-        for row in reader:
-            filtered_row = [row[i] for i in range(len(row)) if i not in columns_to_delete]
-            csv_file.write(','.join(filtered_row) + '\n')
+        # Process the remaining rows
+        for line in lines[1:]:
+            row = line.strip().split(',')
+            new_row = [row[i] for i in range(len(row)) if i not in columns_to_remove]
+            outfile.write(','.join(new_row) + '\n')
 
-if __name__ == '__main__':
-    txt_line = read_txt_file('small_example_fields.txt')
-    # print(lines)
-
-    csv_line = read_csv_file('small_example.csv')
-    # print(column_name)
+# General function that take care about almost everything 
+def delete_column_func(txt_file, input_csv, output_csv):
+    txt_line = read_txt_file(txt_file)
+    csv_line = read_csv_file(input_csv)
 
     new_line = compare_lists(csv_line, txt_line)
-    delete_columns(new_line, 'small_example.csv')
+    remove_columns(input_csv, output_csv, new_line)
+
+# Test case
+if __name__ == '__main__':
+    txt_file = 'large_example_fields.txt'
+    input_csv = 'large_example.csv'
+    output_csv = 'sample1.csv'
+    delete_column_func(txt_file, input_csv, output_csv)
