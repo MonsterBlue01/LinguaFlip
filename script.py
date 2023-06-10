@@ -1,4 +1,5 @@
 import csv
+from tkinter.filedialog import asksaveasfilename
 
 # A function that returns True if all elements of the first row of the CSV file
 # are included in the given list of elements, and False otherwise.
@@ -10,27 +11,23 @@ def check_first_line_elements(filename, elements):
         return all(elem in elements for elem in first_line), invalid_elements
 
 # Remove the columns that ZoomInfo API doesn't support
-def remove_invalid_columns(input_filename, output_filename, valid_elements):
+def remove_invalid_columns(input_filename, valid_elements):
     _, invalid_elements = check_first_line_elements(input_filename, valid_elements)
+    cleaned_data = []
     
     with open(input_filename, 'r') as input_file:
         reader = csv.reader(input_file)
         header = next(reader)
-
-        # Find the indices of invalid columns
         invalid_indices = [header.index(elem) for elem in invalid_elements]
 
-        with open(output_filename, 'w') as output_file:
-            writer = csv.writer(output_file)
-
-            # Write the valid header elements to the output file
-            valid_header = [elem for elem in header if elem not in invalid_elements]
-            writer.writerow(valid_header)
-
-            # Write the valid row elements to the output file
-            for row in reader:
-                valid_row = [row[i] for i in range(len(row)) if i not in invalid_indices]
-                writer.writerow(valid_row)
+        valid_header = [elem for elem in header if elem not in invalid_elements]
+        cleaned_data.append(valid_header)
+        
+        for row in reader:
+            valid_row = [row[i] for i in range(len(row)) if i not in invalid_indices]
+            cleaned_data.append(valid_row)
+            
+    return cleaned_data
 
 # Try to convert the value before replace it with
 def convert_value(value, data_type):
@@ -42,26 +39,25 @@ def convert_value(value, data_type):
         return None
 
 # Check the datatype
-def clean_csv_data(input_filename, output_filename, field_data_types):
-    with open(input_filename, 'r') as input_file:
-        reader = csv.DictReader(input_file)
+def clean_csv_data(cleaned_data, output_filename, field_data_types):
+    with open(output_filename, 'w') as output_file:
+        fieldnames = cleaned_data[0]
+        writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+        writer.writeheader()
         
-        with open(output_filename, 'w') as output_file:
-            fieldnames = reader.fieldnames
-            writer = csv.DictWriter(output_file, fieldnames=fieldnames)
-            writer.writeheader()
+        for row in cleaned_data[1:]:
+            row_dict = dict(zip(fieldnames, row))
+            cleaned_row = {}
             
-            for row in reader:
-                cleaned_row = {}
-                for field, value in row.items():
-                    data_type = field_data_types.get(field)
-                    if data_type:
-                        cleaned_value = convert_value(value, data_type)
-                        cleaned_row[field] = cleaned_value
-                    else:
-                        cleaned_row[field] = value
-                
-                writer.writerow(cleaned_row)
+            for field, value in row_dict.items():
+                data_type = field_data_types.get(field)
+                if data_type:
+                    cleaned_value = convert_value(value, data_type)
+                    cleaned_row[field] = cleaned_value
+                else:
+                    cleaned_row[field] = value
+            
+            writer.writerow(cleaned_row)
 
 # The list of elements that the first row of the CSV file should contain.
 valid_elements = [
@@ -156,16 +152,15 @@ valid_elements = [
 ]
 
 if __name__ == '__main__':
-    input_filename = 'small_example.csv'
-    intermediate_filename = 'intermediate_cleaned_example.csv'
-    output_filename = 'cleaned_small_example.csv'
+    input_filename = 'C:\Personal Projects\Flow\FlowAI\FlowApp\csvprocessing\csvprocessing\small_example.csv'
+    output_filename = r'{}'.format(asksaveasfilename(title="Input CSV File Name",defaultextension='.csv',filetypes=[("CSV file",".csv")])) 
     
     if check_first_line_elements(input_filename, valid_elements)[0]:
         print("All elements are valid.")
     else:
         print("Some elements are not valid. Removing invalid columns...")
-        remove_invalid_columns(input_filename, intermediate_filename, valid_elements)
-        print(f"Invalid columns removed. Intermediate cleaned data saved to {intermediate_filename}.")
+        cleaned_data = remove_invalid_columns(input_filename, valid_elements)
+        print("Invalid columns removed.")
     
     # Define the field_data_types dictionary here.
     field_data_types = {
@@ -258,5 +253,5 @@ if __name__ == '__main__':
     }
     
     print("Checking and replacing entries with invalid data types...")
-    clean_csv_data(intermediate_filename, output_filename, field_data_types)
+    clean_csv_data(cleaned_data, output_filename, field_data_types)
     print(f"Data types checked and cleaned. Final cleaned data saved to {output_filename}.")
