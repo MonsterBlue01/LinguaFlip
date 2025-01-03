@@ -1,3 +1,4 @@
 __pycache__/
 venv/
 cleaned_en_es.csv
+*.pt
