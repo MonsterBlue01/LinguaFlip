@@ -5,6 +5,7 @@ from transformers import get_scheduler
 from tqdm import tqdm
 from pathlib import Path
 import os
+from torch.cuda.amp import GradScaler, autocast  # Import mixed precision modules
 
 class TranslationDataset(Dataset):
     def __init__(self, data_dir):
@@ -21,7 +22,7 @@ class TranslationDataset(Dataset):
         self.cumulative_lengths = []
         total = 0
         for file in self.data_files:
-            data = torch.load(file, map_location='cpu')  # Use CPU loading to reduce GPU memory usage
+            data = torch.load(file, map_location='cpu')  # Load using CPU to reduce GPU memory usage
             num_samples = data["src"].size(0)
             total += num_samples
             self.cumulative_lengths.append(total)
@@ -36,10 +37,8 @@ class TranslationDataset(Dataset):
         return self.total_samples
 
     def __getitem__(self, idx):
-        # Find the file where idx is located
-        file_idx = 0
-        while file_idx < len(self.cumulative_lengths) and idx >= self.cumulative_lengths[file_idx]:
-            file_idx += 1
+        import bisect
+        file_idx = bisect.bisect_right(self.cumulative_lengths, idx)
         
         if file_idx == 0:
             sample_idx = idx
@@ -56,24 +55,35 @@ class TranslationDataset(Dataset):
         
         return src, tgt
 
-def train_loop(model, dataloader, optimizer, scheduler, device):
+def train_loop(model, dataloader, optimizer, scheduler, device, scaler, accumulation_steps=1):
     model.train()
     total_loss = 0
 
-    for batch in tqdm(dataloader, desc="Training"):
+    optimizer.zero_grad()
+
+    for i, batch in enumerate(tqdm(dataloader, desc="Training")):
         src, tgt = batch
         src, tgt = src.to(device), tgt.to(device)
 
-        # Forward pass
-        outputs = model(input_ids=src, labels=tgt)
-        loss = outputs.loss
-        total_loss += loss.item()
+        with autocast():
+            outputs = model(input_ids=src, labels=tgt)
+            loss = outputs.loss / accumulation_steps  # Normalize loss for gradient accumulation
 
-        # Backward pass and optimization step
+        scaler.scale(loss).backward()
+
+        if (i + 1) % accumulation_steps == 0:
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad()
+            scheduler.step()
+
+        total_loss += loss.item() * accumulation_steps  # Multiply back to get the actual loss
+
+    # Handle the last batch if it wasn't a multiple of accumulation_steps
+    if len(dataloader) % accumulation_steps != 0:
+        scaler.step(optimizer)
+        scaler.update()
         optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        scheduler.step()
 
     avg_loss = total_loss / len(dataloader)
     print(f"Training Loss: {avg_loss}")
@@ -88,9 +98,10 @@ def validate_loop(model, dataloader, device):
             src, tgt = batch
             src, tgt = src.to(device), tgt.to(device)
 
-            outputs = model(input_ids=src, labels=tgt)
-            loss = outputs.loss
-            total_loss += loss.item()
+            with autocast():
+                outputs = model(input_ids=src, labels=tgt)
+                loss = outputs.loss
+                total_loss += loss.item()
 
     avg_loss = total_loss / len(dataloader)
     print(f"Validation Loss: {avg_loss}")
@@ -99,56 +110,74 @@ def validate_loop(model, dataloader, device):
 if __name__ == "__main__":
     from pathlib import Path
 
-    # Get the absolute path of the current script
-    script_path = Path(__file__).resolve()
-    script_dir = script_path.parent
+    try:
+        # Get the script path
+        script_path = Path(__file__).resolve()
+        script_dir = script_path.parent
 
-    # The absolute path to the build data directory
-    data_dir = (script_dir / "../data/processed/tokenized").resolve()
-    output_dir = (script_dir / "../outputs/checkpoints").resolve()
+        # Data and output directories
+        data_dir = (script_dir / "../data/processed/tokenized").resolve()
+        output_dir = (script_dir / "../outputs/checkpoints").resolve()
 
-    # Print debug information
-    print(f"Data directory path: {data_dir}")
-    print(f"Output directory path: {output_dir}")
+        # Print debug information
+        print(f"Data directory path: {data_dir}")
+        print(f"Output directory path: {output_dir}")
 
-    # Hyperparameters
-    num_epochs = 3
-    batch_size = 8
-    learning_rate = 5e-5
-    model_name = "Helsinki-NLP/opus-mt-en-es"
+        # Hyperparameters
+        num_epochs = 3
+        batch_size = 8  # Adjust based on your requirements
+        learning_rate = 5e-5
+        model_name = "Helsinki-NLP/opus-mt-en-es"
 
-    # Device setup
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"The equipment used is: {device}")
+        # Device setup
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"The equipment used is: {device}")
 
-    # Load model and tokenizer
-    print("Loading the model and tokenizer...")
-    model = MarianMTModel.from_pretrained(model_name).to(device)
-    tokenizer = MarianTokenizer.from_pretrained(model_name)
+        # Load model and tokenizer
+        print("Loading the model and tokenizer...")
+        model = MarianMTModel.from_pretrained(model_name).to(device)
+        tokenizer = MarianTokenizer.from_pretrained(model_name)
 
-    # Prepare dataset and dataloader
-    print("Preparing dataset and data loader...")
-    dataset = TranslationDataset(data_dir)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        # Prepare dataset and data loader
+        print("Preparing dataset and data loader...")
+        dataset = TranslationDataset(data_dir)
+        dataloader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=1,
+            pin_memory=True,
+        )
 
-    # Optimizer and scheduler
-    optimizer = AdamW(model.parameters(), lr=learning_rate)
-    num_training_steps = len(dataloader) * num_epochs
-    scheduler = get_scheduler(
-        "linear",
-        optimizer=optimizer,
-        num_warmup_steps=0,
-        num_training_steps=num_training_steps
-    )
+        # Optimizer and scheduler
+        optimizer = AdamW(model.parameters(), lr=learning_rate)
+        num_training_steps = len(dataloader) * num_epochs
+        scheduler = get_scheduler(
+            "linear",
+            optimizer=optimizer,
+            num_warmup_steps=0,
+            num_training_steps=num_training_steps
+        )
 
-    # Training loop
-    for epoch in range(num_epochs):
-        print(f"\nEpoch {epoch + 1}/{num_epochs}")
-        train_loss = train_loop(model, dataloader, optimizer, scheduler, device)
-        val_loss = validate_loop(model, dataloader, device)
+        # Initialize GradScaler
+        scaler = GradScaler()
 
-        # Save checkpoint
-        checkpoint_path = output_dir / f"model_epoch_{epoch + 1}.pt"
-        output_dir.mkdir(parents=True, exist_ok=True)
-        torch.save(model.state_dict(), checkpoint_path)
-        print(f"Model saved to {checkpoint_path}")
+        # Set gradient accumulation steps
+        accumulation_steps = 1  # Adjust based on your memory and needs, e.g., 4
+
+        # Training loop
+        for epoch in range(num_epochs):
+            print(f"\nEpoch {epoch + 1}/{num_epochs}")
+            train_loss = train_loop(model, dataloader, optimizer, scheduler, device, scaler, accumulation_steps)
+            val_loss = validate_loop(model, dataloader, device)
+
+            # Save checkpoints
+            checkpoint_path = output_dir / f"model_epoch_{epoch + 1}.pt"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            torch.save(model.state_dict(), checkpoint_path)
+            print(f"Model saved to {checkpoint_path}")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        import traceback
+        traceback.print_exc()
